@@ -1,10 +1,13 @@
 # views.py
-
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from .models import Document
 from io import BytesIO
 from docx import Document as WordDocument
+import json
+from django.shortcuts import render
+
+
 
 # Open an existing document
 def open_document(request, doc_id):
@@ -18,32 +21,43 @@ def create_document(request):
 
 # Autosave document content
 def autosave_document(request, doc_id):
-    if request.method == 'POST':
-        doc = get_object_or_404(Document, id=doc_id)
-        content = request.POST.get('content', '')
-        doc.content = content
+    if request.method == "POST":
+        content = request.POST.get('content')  # Get content from the request
+        doc = Document.objects.get(id=doc_id)
+        doc.content = content  # Assuming the content field is a text field or JSON field
         doc.save()
-        return JsonResponse({'status': 'success', 'message': 'Document autosaved.'})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'})
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'failed'}, status=400)
 
 # Download document in Word format
 def download_document(request, doc_id):
-    doc = get_object_or_404(Document, id=doc_id)
-    word_doc = WordDocument()
-    word_doc.add_heading(doc.title, level=1)
-    word_doc.add_paragraph(doc.content)
-
-    # Save the Word document to a BytesIO buffer
-    buffer = BytesIO()
-    word_doc.save(buffer)
-    buffer.seek(0)
-
-    # Serve the Word document as a response
-    response = HttpResponse(buffer, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    response['Content-Disposition'] = f'attachment; filename="{doc.title}.docx"'
-    return response
+    try:
+        doc = Document.objects.get(id=doc_id)
+        content = doc.content
+        word_doc = WordDocument()
+        word_doc.add_paragraph(content)
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        response['Content-Disposition'] = 'attachment; filename="document.docx"'
+        word_doc.save(response)
+        return response
+    except Document.DoesNotExist:
+        return JsonResponse({'status': 'failed', 'message': 'Document not found'}, status=404)
 
 def home(request):
     documents = Document.objects.all()
     return render(request, 'editor/home.html', {'documents': documents})
+
+
+def list_documents(request):
+    documents = Document.objects.all()
+    return JsonResponse({'status': 'success', 'documents': [doc.title for doc in documents]})
+
+
+def load_document(request, doc_id):
+    try:
+        doc = Document.objects.get(id=doc_id)
+        content = doc.content
+        return JsonResponse({'status': 'success', 'content': content})
+    except Document.DoesNotExist:
+        return JsonResponse({'status': 'failed', 'message': 'Document not found'}, status=404)
 

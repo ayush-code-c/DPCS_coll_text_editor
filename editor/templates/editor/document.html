@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
-    <!-- Include Quill CSS -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <style>
         .user-cursor {
@@ -22,22 +21,53 @@
     <button onclick="saveDocument()">Save</button>
     <button onclick="downloadDocument()">Download</button>
     <button onclick="createNewDocument()">New Document</button>
-    <!-- Quill Editor Placeholder -->
+    <button onclick="openDocumentList()">Open Document</button>
+
     <div id="editor-container">
         <div id="editor"></div>
     </div>
 
-    <!-- Include Quill JS -->
+    <div id="document-list" style="display: none;">
+        <h2>Select a document to open:</h2>
+        <ul id="document-list-items"></ul>
+    </div>
+
     <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
     <script>
-        const docId = "{{ doc_id }}";
+        const docId = "{{ doc_id }}";  // Initialize with a placeholder ID
         const csrfToken = "{{ csrf_token }}";
-        const autosaveInterval = 5000; // Autosave every 5 seconds
+        const autosaveInterval = 5000;  // Autosave every 5 seconds
 
-        // Initialize Quill editor
         const quill = new Quill('#editor', {
             theme: 'snow'
         });
+
+        // Function to get the list of documents
+        function openDocumentList() {
+            fetch('/editor/document/list/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const listItems = data.documents.map(doc => {
+                            return `<li onclick="openDocument('${doc}')">${doc}</li>`;
+                        }).join('');
+                        document.getElementById('document-list-items').innerHTML = listItems;
+                        document.getElementById('document-list').style.display = 'block';
+                    }
+                });
+        }
+
+        // Open a document by title
+        function openDocument(docTitle) {
+            fetch(`/editor/document/${docTitle}/content/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        quill.setContents(data.content);  // Load document content into Quill
+                        document.getElementById('document-list').style.display = 'none';  // Hide document list
+                    }
+                });
+        }
 
         // Autosave function
         function autosave() {
@@ -59,7 +89,7 @@
             .catch(err => console.error('Autosave failed:', err));
         }
 
-        // Manual save function
+        // Save document
         function saveDocument() {
             autosave();
             alert('Document saved!');
@@ -77,59 +107,6 @@
 
         // Autosave at regular intervals
         setInterval(autosave, autosaveInterval);
-
-        // Set up WebSocket connection for collaborative editing
-        const ws = new WebSocket('ws://' + window.location.host + '/ws/editor/' + docId + '/');
-
-        ws.onopen = () => {
-            console.log('Connected to WebSocket!');
-        };
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            if (data.type === 'content_update') {
-                quill.setContents(data.content);
-            } else if (data.type === 'cursor_position') {
-                const userId = data.user_id; // Unique ID for each user
-                const cursorPosition = data.cursor_position;
-
-                // Add a cursor element for the user if it doesn't already exist
-                let userCursor = document.getElementById(`cursor-${userId}`);
-                if (!userCursor) {
-                    userCursor = document.createElement('div');
-                    userCursor.id = `cursor-${userId}`;
-                    userCursor.className = 'user-cursor';
-                    userCursor.style.backgroundColor = data.color || 'red'; // Optional user-specific color
-                    document.body.appendChild(userCursor);
-                }
-
-                // Update cursor position
-                const bounds = quill.getBounds(cursorPosition.index);
-                userCursor.style.left = bounds.left + 'px';
-                userCursor.style.top = bounds.top + 'px';
-            }
-        };
-
-        ws.onclose = () => {
-            console.log('WebSocket connection closed.');
-        };
-
-        quill.on('text-change', () => {
-            const content = quill.getContents();
-            ws.send(JSON.stringify({ type: 'content_update', content }));
-        });
-
-        // Send cursor position on selection change
-        quill.on('selection-change', (range) => {
-            if (range) {
-                ws.send(JSON.stringify({
-                    type: 'cursor_position',
-                    cursor_position: range,
-                    user_id: 'unique_user_id', // Replace with the actual user's unique ID
-                }));
-            }
-        });
     </script>
 </body>
 </html>
