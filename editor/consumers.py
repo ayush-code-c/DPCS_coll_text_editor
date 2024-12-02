@@ -1,8 +1,11 @@
 # editor/consumers.py
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from asgiref.sync import async_to_sync
+
 
 class EditorConsumer(AsyncWebsocketConsumer):
+    document_state ={}
     async def connect(self):
         self.doc_id = self.scope['url_route']['kwargs']['doc_id']
         self.room_group_name = f"editor_{self.doc_id}"
@@ -37,6 +40,14 @@ class EditorConsumer(AsyncWebsocketConsumer):
                     'cursor_position': cursor_position,
                 }
             )
+    async def update_content(self, event):
+        content = event['content']
+
+    # Send updated content to WebSocket
+        await self.send(text_data=json.dumps({
+            'content': content
+        }))
+
 
     # Receive message from room group (send to the WebSocket client)
     async def cursor_position(self, event):
