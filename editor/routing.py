@@ -1,6 +1,7 @@
-from django.urls import re_path
-from . import consumers
+# editor/routing.py
+from django.urls import path
+from .consumers import EditorConsumer
 
 websocket_urlpatterns = [
-    re_path(r'ws/document/(?P<doc_id>\d+)/$', consumers.DocumentConsumer.as_asgi()),
+    path('ws/editor/<str:doc_id>/', EditorConsumer.as_asgi()),
 ]

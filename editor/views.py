@@ -61,3 +61,14 @@ def load_document(request, doc_id):
     except Document.DoesNotExist:
         return JsonResponse({'status': 'failed', 'message': 'Document not found'}, status=404)
 
+def rename_document(request, doc_id):
+    if request.method == "POST":
+        new_title = request.POST.get("new_title")
+        try:
+            document = Document.objects.get(id=doc_id)
+            document.title = new_title
+            document.save()
+            return JsonResponse({"status": "success", "new_title": new_title})
+        except Document.DoesNotExist:
+            return JsonResponse({"status": "error", "message": "Document not found"})
+    return JsonResponse({"status": "error", "message": "Invalid request"})

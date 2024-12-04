@@ -10,5 +10,5 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('editor/document/list/', views.list_documents, name='list_documents'),
     path('editor/document/<int:doc_id>/content/', views.load_document, name='load_document'),
-
+    path("document/<int:doc_id>/rename/", views.rename_document, name="rename_document"),
 ]
