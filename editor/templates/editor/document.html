@@ -17,15 +17,34 @@
     </style>
 </head>
 <body>
-    <h1>{{ title }}</h1>
+    <h1>{{ title }} </h1>
+    <h2>{{ request.user.username }}</h2>
     <button onclick="saveDocument()">Save</button>
     <button onclick="downloadDocument()">Download</button>
     <button onclick="createNewDocument()">New Document</button>
     <button onclick="openDocumentList()">Open Document</button>
+    <button id="add-comment">Add Comment</button>
+    <a href="{% url 'logout' %}" class="btn btn-dark">Logout</a>
+
+    
+    <style>
+        #editor-container {
+            height: 300px;
+            border: 1px solid #ccc;
+        }
+        #comments-sidebar {
+            margin-top: 10px;
+        }
+    </style>
+
 
     <div id="editor-container">
         <div id="editor"></div>
     </div>
+    <div id="document-content" contenteditable="true">
+        {{ document.content|safe }}
+    </div>
+
 
     <div id="document-list" style="display: none;">
         <h2>Select a document to open:</h2>
@@ -88,6 +107,34 @@
             })
             .catch(err => console.error('Autosave failed:', err));
         }
+
+        document.getElementById('document-content').addEventListener('click', function (e) {
+        const position = window.getSelection().anchorOffset; // Get cursor position
+        const commentContent = prompt('Enter your comment:');
+        if (commentContent) {
+            addComment(position, commentContent);
+        }
+    });
+
+    
+
+    // Handle text selection to add comments
+    quill.on('text-change', (delta, oldDelta, source) => {
+    console.log('Text change detected:', delta);
+});
+
+document.querySelector('#add-comment').addEventListener('click', () => {
+    const commentText = prompt('Enter your comment:');
+    if (commentText) {
+        const range = quill.getSelection();
+        if (range) {
+            quill.insertText(range.index, `[${commentText}]`, { bold: true });
+        } else {
+            alert('Please select a text to add a comment.');
+        }
+    }
+});
+
 
         // Save document
         function saveDocument() {

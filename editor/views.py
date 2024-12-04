@@ -5,13 +5,72 @@ from .models import Document
 from io import BytesIO
 from docx import Document as WordDocument
 import json
-from django.shortcuts import render
+from .models import Comment
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.contrib.auth.forms import UserCreationForm,AuthenticationForm
+from django.contrib.auth import login, logout
+#from .middlewares import auth, guest
+
+#@guest
+new_doc = Document.objects.create(title="New Document")
+def register_view(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request,user)
+            return redirect('open_document', doc_id=new_doc.id)
+    else:
+        initial_data = {'username':'', 'password1':'','password2':""}
+        form = UserCreationForm(initial=initial_data)
+    return render(request, 'auth/register.html',{'form':form})
+
+#@guest
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request,user)
+            return redirect('open_document', doc_id=new_doc.id)
+    else:
+        initial_data = {'username':'', 'password':''}
+        form = AuthenticationForm(initial=initial_data)
+    return render(request, 'auth/login.html',{'form':form}) 
+
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
+
+def add_comment(request, doc_id):
+    if request.method == 'POST':
+        document = get_object_or_404(Document, id=doc_id)
+        data = json.loads(request.body)
+        comment = Comment.objects.create(
+            document=document,
+            user=request.user,
+            content=data['content'],
+            start=data['start'],
+            end=data['end']
+        )
+        return JsonResponse({'status': 'success', 'message': 'Comment added', 'comment_id': comment.id})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+def get_comments(request, doc_id):
+    document = get_object_or_404(Document, id=doc_id)
+    comments = document.comments.values('id', 'content', 'start', 'end', 'user__username', 'created_at')
+    return JsonResponse({'status': 'success', 'comments': list(comments)})
+
 
 
 
 # Open an existing document
 def open_document(request, doc_id):
-    doc = get_object_or_404(Document, id=doc_id)
+    doc = get_object_or_404(Document, id=doc_id)  # Retrieve document or return 404 if not found
     return render(request, 'editor/document.html', {'doc_id': doc.id, 'title': doc.title, 'content': doc.content})
 
 # Create a new document

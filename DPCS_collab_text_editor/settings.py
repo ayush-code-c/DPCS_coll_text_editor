@@ -40,6 +40,13 @@ INSTALLED_APPS = [
     "editor",
     'channels'
 ]
+AUTHENTICATION_BACKENDS=[
+    'django.contrib.auth.backends.ModelBackend'
+]
+
+AUTH_USER_MODEL = 'auth.User'
+LOGIN_URL = '/login/'
+LOGOUT_REDIRECT_URL = '/'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

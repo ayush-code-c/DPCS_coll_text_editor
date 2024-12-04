@@ -19,9 +19,11 @@ from django.contrib import admin
 from django.urls import path, include
 
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('editor/', include('editor.urls')),  # This includes the editor app URLs
+    path('editor/', include('editor.urls')),  
+    path('auth/',include("editor.urls")),
 ]
 
 
