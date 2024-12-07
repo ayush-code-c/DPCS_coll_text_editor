@@ -18,11 +18,13 @@
 </head>
 <body>
     <h1>{{ title }}</h1>
+    <h2>{{ request.user.username }}</h2>
     <button onclick="renameDocument()">Rename</button>
     <button onclick="saveDocument()">Save</button>
     <button onclick="downloadDocument()">Download</button>
     <button onclick="createNewDocument()">New Document</button>
     <button onclick="openDocumentList()">Open Document</button>
+    <a href="{% url 'logout' %}" class="btn btn-dark">Logout</a>
 
     <div id="editor-container">
         <div id="editor"></div>
@@ -164,6 +166,25 @@
             autosave();
             alert('Document saved!');
         }
+
+        document.getElementById('document-content').addEventListener('click', function (e) {
+        const position = window.getSelection().anchorOffset; // Get cursor position
+        const commentContent = prompt('Enter your comment:');
+        if (commentContent) {
+            addComment(position, commentContent);
+        }
+    });
+
+    
+
+    // Handle text selection to add comments
+        quill.on('text-change', (delta, oldDelta, source) => {
+        console.log('Text change detected:', delta);
+    });
+
+    
+
+
 
         // Download document in Word format
         function downloadDocument() {

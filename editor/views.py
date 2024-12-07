@@ -5,7 +5,45 @@ from .models import Document
 from io import BytesIO
 from docx import Document as WordDocument
 import json
-from django.shortcuts import render
+from .models import Comment
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.contrib.auth.forms import UserCreationForm,AuthenticationForm
+from django.contrib.auth import login, logout
+
+
+new_doc = Document.objects.create(title="New Document")
+def register_view(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request,user)
+            return redirect('open_document', doc_id=new_doc.id)
+    else:
+        initial_data = {'username':'', 'password1':'','password2':""}
+        form = UserCreationForm(initial=initial_data)
+    return render(request, 'auth/register.html',{'form':form})
+
+#@guest
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request,user)
+            return redirect('open_document', doc_id=new_doc.id)
+    else:
+        initial_data = {'username':'', 'password':''}
+        form = AuthenticationForm(initial=initial_data)
+    return render(request, 'auth/login.html',{'form':form}) 
+
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
+
 
 
 
