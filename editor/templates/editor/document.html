@@ -77,16 +77,17 @@
         }
 
         // Open a document by title
-        function openDocument(docTitle) {
-            fetch(`/editor/document/${docTitle}/content/`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        quill.setContents(data.content);  // Load document content into Quill
-                        document.getElementById('document-list').style.display = 'none';  // Hide document list
-                    }
-                });
-        }
+        async function loadDocument(documentId) {
+    const response = await fetch(`/editor/open/${documentId}/`);
+    const result = await response.json();
+    if (result.document) {
+        quill.root.innerHTML = result.document.content; // Load content
+        displayComments(result.document.comments); // Handle comment display
+    } else {
+        alert(result.error);
+    }
+}
+
 
         // Autosave function
         function autosave() {
@@ -137,23 +138,18 @@ document.querySelector('#add-comment').addEventListener('click', () => {
 
 
         // Save document
-        function saveDocument() {
-            autosave();
-            alert('Document saved!');
-        }
+        document.querySelector('#save-button').addEventListener('click', async () => {
+    const content = quill.root.innerHTML; // Get editor content
+    const comments = []; // Collect your comments array here
+    const response = await fetch(`/editor/save/${documentId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, comments })
+    });
+    const result = await response.json();
+    alert(result.message || result.error);
+});
 
-        // Download document in Word format
-        function downloadDocument() {
-            window.location.href = `/editor/document/${docId}/download/`;
-        }
-
-        // Create a new document
-        function createNewDocument() {
-            window.location.href = `/editor/document/new/`;
-        }
-
-        // Autosave at regular intervals
-        setInterval(autosave, autosaveInterval);
-    </script>
+</script>
 </body>
 </html>

@@ -11,6 +11,18 @@ from django.utils.decorators import method_decorator
 from django.contrib.auth.forms import UserCreationForm,AuthenticationForm
 from django.contrib.auth import login, logout
 #from .middlewares import auth, guest
+from .db_utils import save_document_to_db
+from .db_utils import fetch_document_from_db
+
+def save_document(request, doc_id):
+    if request.method == "POST":
+        data = request.POST  # Or `json.loads(request.body)` if using JSON
+        content = data.get('content', '')  # Editor content
+        comments = data.get('comments', [])  # Comments as JSON array
+        save_document_to_db(doc_id, content, comments)
+        return JsonResponse({"message": "Document saved successfully"})
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
 
 #@guest
 new_doc = Document.objects.create(title="New Document")
@@ -68,10 +80,12 @@ def get_comments(request, doc_id):
 
 
 
-# Open an existing document
+
 def open_document(request, doc_id):
-    doc = get_object_or_404(Document, id=doc_id)  # Retrieve document or return 404 if not found
-    return render(request, 'editor/document.html', {'doc_id': doc.id, 'title': doc.title, 'content': doc.content})
+    document = fetch_document_from_db(doc_id)
+    if document:
+        return JsonResponse({"document": document})
+    return JsonResponse({"error": "Document not found"}, status=404)
 
 # Create a new document
 def create_document(request):
